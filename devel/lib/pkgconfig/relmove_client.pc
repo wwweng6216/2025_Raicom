@@ -1,0 +1,8 @@
+prefix=/home/reicom2025/ros_workspace/devel
+
+Name: relmove_client
+Description: Description of relmove_client
+Version: 0.0.0
+Cflags: 
+Libs: -L${prefix}/lib 
+Requires: 

@@ -1,0 +1,2 @@
+reicoures_facedetect:reicoures_nav:reicoures_relocalization:relmove_client
+-DCATKIN_DEVEL_PREFIX=/home/reicom2025/ros_workspace/devel -DCMAKE_INSTALL_PREFIX=/home/reicom2025/ros_workspace/install -G Unix Makefiles

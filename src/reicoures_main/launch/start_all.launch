@@ -1,0 +1,11 @@
+<launch>
+    <include file="$(find bobac3_navigation)/launch/demo_nav_2d.launch">
+        <arg name="map_file_name" value="reimap" />
+    </include>
+
+    <node pkg="reicoures_facedetect" type="facedetect_node" name="face_node" />
+
+    <node pkg="reicoures_voice" type="voice.py" name="voice_node" output="screen" />
+
+    <node pkg="reicoures_main" type="robocom_main_controller" name="main_controller" output="screen" />
+</launch>
