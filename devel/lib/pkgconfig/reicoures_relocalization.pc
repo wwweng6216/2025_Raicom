@@ -1,8 +1,0 @@
-prefix=/home/reicom2025/ros_workspace/devel
-
-Name: reicoures_relocalization
-Description: Description of reicoures_relocalization
-Version: 0.0.0
-Cflags: 
-Libs: -L${prefix}/lib 
-Requires: 
