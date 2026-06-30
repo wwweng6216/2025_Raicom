@@ -8,8 +8,7 @@ project(reicoures_main)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
-  areicoures_main
-  move_base_msg
+  move_base_msgs
   robot_audio
   roscpp
 )
@@ -106,7 +105,7 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES reicoures_main
-#  CATKIN_DEPENDS areicoures_main move_base_msg robot_audio roscpp
+#  CATKIN_DEPENDS move_base_msgs robot_audio roscpp
 #  DEPENDS system_lib
 )
 

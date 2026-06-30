@@ -29,6 +29,14 @@ struct PavilionVoice {
     std::string goodbye;
 };
 
+// ==========================================
+// 3. 展馆字典结构体
+// ==========================================
+struct Destination {
+    std::string cmd;  // 下发给老司机的英文代号
+    std::string name; // 用于日志打印的中文名称
+};
+
 const std::string VOICE_GREETING    = "你好，欢迎您的到来！有什么需要帮助的吗？";
 const std::string VOICE_GUIDE_START = "好的，请跟我来。";
 const std::string VOICE_INSPECT_MOD = "好的，进入巡检模式。";
@@ -110,23 +118,52 @@ void voiceTextCallback(const std_msgs::String::ConstPtr& msg) {
     std::string text = msg->data;
     ROS_INFO("🎤 [听觉捕获] 解析出文字: %s", text.c_str());
 
-    // 状态机处理：任务一等待目的地
     if (current_state == STATE_T1_WAIT_VOICE) {
-        if (text.find("深圳") != std::string::npos || text.find("参观") != std::string::npos) {
-            toggleAudioRecording(false); // 停止收音，专心开车
-            speak(VOICE_GUIDE_START);
+        // 状态机处理：当前处于任务一等待目的地语音状态
+        // 这里声明为静态常量，保证只在程序启动时初始化一次，避免每次进语音回调都重新在内存构造 Map，极大节省算力。
+        static const std::map<std::string, Destination> target_map = {
+            {"深圳", {"shenzhen",  "深圳馆"}},
+            {"北京", {"beijing",   "北京馆"}},
+            {"广州", {"guangzhou", "广州馆"}},
+            {"吉林", {"jilin",     "吉林馆"}},
+            {"上海", {"shanghai",  "上海馆"}}
+        };
+
+        bool is_matched = false;
+
+        // 核心遍历逻辑：精准剥离城市关键词
+        for (const auto& pair : target_map) {
+            // pair.first 为城市名（如"北京"），pair.second 为对应的代号和中文名
+            if (text.find(pair.first) != std::string::npos) {
+                
+                toggleAudioRecording(false);  // 1. 停止收音，专心发车
+                speak(VOICE_GUIDE_START);     // 2. 播报语音：“好的，请跟我来。”
+                
+                // 3. 动态给全能老司机下发目标指令
+                std_msgs::String cmd_msg;
+                cmd_msg.data = pair.second.cmd;
+                nav_cmd_pub.publish(cmd_msg);
+                
+                // 4. 跃迁状态机状态，锁死后续干扰
+                current_state = STATE_T1_NAVIGATING;
+                ROS_INFO("🔄 状态切入: [前往%s]", pair.second.name.c_str()); 
+                
+                is_matched = true;
+                break; // 成功匹配目的地，立刻切断循环，防止多城市词串扰
+            }
+        }
+
+        // 优化 2：完善防卡死兜底逻辑。
+        // 如果听到了“参观”或者“带我去”，但是城市名因为杂音没听清，必须主动回应引导，否则机器人会变木头。
+        if (!is_matched && (text.find("参观") != std::string::npos || text.find("去") != std::string::npos)) {
+            ROS_WARN("听到了引导意图，但未能匹配城市关键词。触发重新倾听引导...");
             
-            // 下发字符串给全能司机
-            std_msgs::String cmd_msg;
-            cmd_msg.data = "shenzhen";
-            nav_cmd_pub.publish(cmd_msg);
-            
-            current_state = STATE_T1_NAVIGATING;
-            ROS_INFO("🔄 状态切入: [任务一导览中...]");
+            speak("对不起，请问您想去哪个展馆？请清晰地说出城市名称。");
         }
     }
-    // 状态机处理：任务二等待巡检启动口令
+    
     else if (current_state == STATE_T2_WAIT_START) {
+        // 状态机处理：任务二等待巡检启动口令
         if (text.find("开始") != std::string::npos || text.find("巡检") != std::string::npos) {
             toggleAudioRecording(false);
             speak(VOICE_INSPECT_MOD);
@@ -143,13 +180,12 @@ void voiceTextCallback(const std_msgs::String::ConstPtr& msg) {
     }
 }
 
-// C. 接收全能司机的导航状态结果反馈
-// （我们在司机节点到达目的地后发布此话题，通知大脑执行后续动作）
+// 接收导航状态结果反馈
 void navStatusCallback(const std_msgs::String::ConstPtr& msg) {
     std::string status = msg->data;
     if (status != "ARRIVED") return;
 
-    // 状态机处理：任务一到达深圳馆
+    // 状态机处理：任务一到达目标馆
     if (current_state == STATE_T1_NAVIGATING) {
         current_state = STATE_T1_ARRIVED_DES;
         ROS_INFO("🔄 状态切入: [到达深圳馆，开始宣讲]");
@@ -231,7 +267,7 @@ int main(int argc, char** argv) {
 
     // 订阅者们：收听眼睛、耳朵、司机的动向
     ros::Subscriber sub_face = nh.subscribe("/face_result", 10, faceCallback);
-    ros::Subscriber sub_voice = nh.subscribe("/REITopic/AIUIText", 10, voiceTextCallback); // 对接官方或Vosk文本话题
+    ros::Subscriber sub_voice = nh.subscribe("/vosk_result", 10, voiceTextCallback); // 对接官方或Vosk文本话题
     ros::Subscriber sub_nav = nh.subscribe("/nav_driver_status", 10, navStatusCallback);
 
     ROS_INFO("======================================================");

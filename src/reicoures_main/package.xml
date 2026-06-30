@@ -49,16 +49,16 @@
   <!-- Use doc_depend for packages you need only for building documentation: -->
   <!--   <doc_depend>doxygen</doc_depend> -->
   <buildtool_depend>catkin</buildtool_depend>
-  <build_depend>areicoures_main</build_depend>
-  <build_depend>move_base_msg</build_depend>
+  
+  <build_depend>move_base_msgs</build_depend>
   <build_depend>robot_audio</build_depend>
   <build_depend>roscpp</build_depend>
-  <build_export_depend>areicoures_main</build_export_depend>
-  <build_export_depend>move_base_msg</build_export_depend>
+  
+  <build_export_depend>move_base_msgs</build_export_depend>
   <build_export_depend>robot_audio</build_export_depend>
   <build_export_depend>roscpp</build_export_depend>
-  <exec_depend>areicoures_main</exec_depend>
-  <exec_depend>move_base_msg</exec_depend>
+  
+  <exec_depend>move_base_msgs</exec_depend>
   <exec_depend>robot_audio</exec_depend>
   <exec_depend>roscpp</exec_depend>
 

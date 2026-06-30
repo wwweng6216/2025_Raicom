@@ -24,7 +24,7 @@ def main():
     
     # 3. 设置 Vosk 模型路径 (使用动态相对路径)
     current_script_dir = os.path.dirname(os.path.abspath(__file__))
-    default_model_path = os.path.abspath(os.path.join(current_script_dir, "..", "model", "vosk-model-small-cn-0.22"))
+    default_model_path = os.path.abspath(os.path.join(current_script_dir, "..", "..","model", "vosk-model-small-cn-0.22"))
     
     model_path = rospy.get_param("~model_path", default_model_path)
     
