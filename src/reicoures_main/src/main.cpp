@@ -67,7 +67,7 @@ bool yolo_extinguisher_missing = false;   // 模拟订阅到的 YOLO 缺少灭�
 // ==========================================
 // 语音合成 (TTS) 执行器
 void speak(const std::string& text) {
-    ROS_INFO("🤖 [语音播报] -> %s", text.c_str());
+    ROS_INFO("[语音播报] -> %s", text.c_str());
     // 比赛现场可以直接用 Linux 系统的 espeak 命令，或者调用官方的语音合成话题
     std::string cmd = "espeak -v zh+f2 -s 170 \"" + text + "\" &";
     system(cmd.c_str());
@@ -78,13 +78,13 @@ void speak(const std::string& text) {
 // 控制官方麦克风录音开关
 void toggleAudioRecording(bool start) {
     if (!audio_srv_client.waitForExistence(ros::Duration(2.0))) {
-        ROS_WARN("⚠️ 录音服务不可用，请确认 launch 是否加载语音服务");
+        ROS_WARN("! 录音服务不可用，请确认 launch 是否加载语音服务");
         return;
     }
     std_srvs::SetBool srv;
     srv.request.data = start;
     if (audio_srv_client.call(srv)) {
-        ROS_INFO("🎤 大脑控制底层收音: %s", start ? "【开启】" : "【关闭】");
+        ROS_INFO("收音: %s", start ? "【开启】" : "【关闭】");
     }
 }
 
@@ -96,7 +96,7 @@ void faceCallback(const std_msgs::String::ConstPtr& msg) {
     if (current_state != STATE_IDLE) return; // 只有在闲置待机时才接受脸部唤醒
 
     std::string name = msg->data;
-    ROS_INFO("👁️ [视觉发现] 眼前出现目标: %s", name.c_str());
+    ROS_INFO("[视觉] 眼前出现目标: %s", name.c_str());
 
     if (name == "normal_visitor" || name == "visitor") {
         // 【触发任务一】迎宾机器人开发
@@ -104,7 +104,7 @@ void faceCallback(const std_msgs::String::ConstPtr& msg) {
         current_state = STATE_T1_WAIT_VOICE;
         toggleAudioRecording(true); // 开启听觉，等待命令
     } 
-    else if (name == "周晓铭" || name == "霍稷" || name == "小明") {
+    else if (name == "Juwan" || name == "Glenn" || name == "小明") {
         // 【触发任务二】巡检机器人开发
         std::string admin_name = (name == "小明") ? "周晓铭" : name;
         speak("你好，管理员" + admin_name + "。");
@@ -116,7 +116,7 @@ void faceCallback(const std_msgs::String::ConstPtr& msg) {
 // B. 接收语音识别文本结果
 void voiceTextCallback(const std_msgs::String::ConstPtr& msg) {
     std::string text = msg->data;
-    ROS_INFO("🎤 [听觉捕获] 解析出文字: %s", text.c_str());
+    ROS_INFO("[听觉] 解析出文字: %s", text.c_str());
 
     if (current_state == STATE_T1_WAIT_VOICE) {
         // 状态机处理：当前处于任务一等待目的地语音状态
@@ -142,11 +142,11 @@ void voiceTextCallback(const std_msgs::String::ConstPtr& msg) {
                 // 3. 动态给全能老司机下发目标指令
                 std_msgs::String cmd_msg;
                 cmd_msg.data = pair.second.cmd;
-                nav_cmd_pub.publish(cmd_msg);
+                nav_cmd_pub.publish(cmd_msg);大脑
                 
                 // 4. 跃迁状态机状态，锁死后续干扰
                 current_state = STATE_T1_NAVIGATING;
-                ROS_INFO("🔄 状态切入: [前往%s]", pair.second.name.c_str()); 
+                ROS_INFO("状态切入: [前往%s]", pair.second.name.c_str()); 
                 
                 is_matched = true;
                 break; // 成功匹配目的地，立刻切断循环，防止多城市词串扰
@@ -175,7 +175,7 @@ void voiceTextCallback(const std_msgs::String::ConstPtr& msg) {
             nav_cmd_pub.publish(cmd_msg);
             
             current_state = STATE_T2_INSPECTING;
-            ROS_INFO("🔄 状态切入: [任务二场馆智能巡检中...]");
+            ROS_INFO("状态切入: [任务二场馆智能巡检中...]");
         }
     }
 }
@@ -188,14 +188,14 @@ void navStatusCallback(const std_msgs::String::ConstPtr& msg) {
     // 状态机处理：任务一到达目标馆
     if (current_state == STATE_T1_NAVIGATING) {
         current_state = STATE_T1_ARRIVED_DES;
-        ROS_INFO("🔄 状态切入: [到达深圳馆，开始宣讲]");
+        ROS_INFO("状态切入: [到达深圳馆，开始宣讲]");
         
         speak(pavilion_dict["shenzhen"].intro);
         ros::Duration(1.0).sleep();
         speak(pavilion_dict["shenzhen"].goodbye);
         
         // 自动切入返回出发区命令
-        ROS_INFO("🔄 任务一结束，命令司机返回出发区...");
+        ROS_INFO("任务一结束，命令司机返回出发区...");
         std_msgs::String cmd_msg;
         cmd_msg.data = "start";
         nav_cmd_pub.publish(cmd_msg);
@@ -205,14 +205,14 @@ void navStatusCallback(const std_msgs::String::ConstPtr& msg) {
     // 状态机处理：任务二巡检中到达了某一个馆
     else if (current_state == STATE_T2_INSPECTING) {
         std::string current_room = inspect_targets[current_inspect_idx];
-        ROS_INFO("🔍 抵达巡检区: [%s] 馆，开始进行资产与安全隐患排查...", current_room.c_str());
+        ROS_INFO("抵达巡检区: [%s] 馆，开始进行资产与安全隐患排查...", current_room.c_str());
         
         // 现场留出几秒钟给 YOLO 视觉节点稳定识别
         ros::Duration(3.0).sleep(); 
         
         // 检查火源隐患
         if (yolo_fire_detected) {
-            ROS_WARN("🚨 发现火源！播放警报音频...");
+            ROS_WARN("发现火源！播放警报音频...");
             system("play_alarm_sound_4s.sh"); // 模拟播放警报 4 秒
             ros::Duration(4.0).sleep();
             speak(pavilion_dict[current_room].fire_found);
@@ -220,7 +220,7 @@ void navStatusCallback(const std_msgs::String::ConstPtr& msg) {
         
         // 检查灭火器资产
         if (yolo_extinguisher_missing) {
-            ROS_WARN("🚨 发现资产缺失！播放警报音频...");
+            ROS_WARN("缺少灭火器！播放警报音频...");
             system("play_alarm_sound_4s.sh"); 
             ros::Duration(4.0).sleep();
             speak(pavilion_dict[current_room].no_extinguisher);
@@ -230,13 +230,13 @@ void navStatusCallback(const std_msgs::String::ConstPtr& msg) {
         current_inspect_idx++;
         if (current_inspect_idx < inspect_targets.size()) {
             // 还有场馆没巡检完，命令司机去下一个馆
-            ROS_INFO("🚗 前往下一个巡检目的地...");
+            ROS_INFO("前往下一个巡检目的地...");
             std_msgs::String cmd_msg;
             cmd_msg.data = inspect_targets[current_inspect_idx];
             nav_cmd_pub.publish(cmd_msg);
         } else {
             // 所有场馆遍历完毕，触发最终的充电大招
-            ROS_INFO("🎉 所有场馆智能巡检完毕！下发一键自主充电指令...");
+            ROS_INFO(" 所有场馆智能巡检完毕！下发一键自主充电指令...");
             std_msgs::String cmd_msg;
             cmd_msg.data = "start"; // 司机收到 start 会自动触发第四课的 AR 对准倒车合体
             nav_cmd_pub.publish(cmd_msg);
@@ -246,7 +246,7 @@ void navStatusCallback(const std_msgs::String::ConstPtr& msg) {
     }
     // 终点连招：安全回到出发点，绿灯亮起，重置大脑
     else if (current_state == STATE_RETURN_HOME) {
-        ROS_INFO("🏆 [大获全胜] 机器人已成功完成任务并合体充电！系统重置待机。");
+        ROS_INFO("机器人已成功完成任务并充电！系统重置待机。");
         current_state = STATE_IDLE;
     }
 }
@@ -271,7 +271,7 @@ int main(int argc, char** argv) {
     ros::Subscriber sub_nav = nh.subscribe("/nav_driver_status", 10, navStatusCallback);
 
     ROS_INFO("======================================================");
-    ROS_INFO(" 🏆 睿抗机器人总控状态机大脑加载成功！当前状态: [出发区待机] ");
+    ROS_INFO(" 睿抗机器人状态机加载成功！当前状态: [出发区待机] ");
     ROS_INFO("======================================================");
 
     ros::spin();

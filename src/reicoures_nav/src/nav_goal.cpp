@@ -40,7 +40,7 @@ public:
 
         // 【闭环正赛】：完美对齐你提取到的 4 参数真实物理世界坐标
         if (goal_place == "shenzhen") {
-            target = {1.066, 1.180, -0.004, 1.000};
+            target = {0.997, 1.218, -0.004, 1.000};
             valid_target = true;
         } 
         else if (goal_place == "start" || goal_place == "home") {
@@ -48,19 +48,19 @@ public:
             valid_target = true;
         }
         else if (goal_place == "beijing") {
-            target = {2.449, 0.335, 0.008, 1.000};
+            target = {2.444, 0.195, 0.008, 1.000};
             valid_target = true;
         }
         else if (goal_place == "guangzhou") {
-            target = {2.397, 1.305, 0.011, 1.000};
+            target = {2.474, 1.162, 0.011, 1.000};
             valid_target = true;
         }
         else if (goal_place == "jilin") {
-            target = {2.334, 2.157, 0.015, 1.000};
+            target = {2.480, 2.181, 0.015, 1.000};
             valid_target = true;
         }
         else if (goal_place == "shanghai") {
-            target = {0.994, 2.067, 0.007, 1.000};
+            target = {1.051, 2.187, 0.007, 1.000};
             valid_target = true;
         }
 
