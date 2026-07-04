@@ -33,7 +33,7 @@ void face_detect_and_publish()
                 std_msgs::String msg;
                 if (label == "Glenn" || label == "visitor" || label == "normal_visitor") {
                     msg.data = "visitor"; 
-                } else if (label == "Juwan" || label == "霍稷" || label == "小明") {
+                } else if (label == "Juwan" || label == "杨迪喻" ) {
                     msg.data = label;     
                 } else {
                     msg.data = "visitor"; 

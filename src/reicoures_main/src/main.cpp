@@ -183,12 +183,12 @@ void faceCallback(const std_msgs::String::ConstPtr& msg) {
         current_state = STATE_T1_WAIT_VOICE;
         toggleAudioRecording(true); // 开启听觉，等待命令
     } 
-    else if (name == "Juwan" || name == "Glenn" || name == "小明") {
+    else if (name == "Juwan") {
         // 【新增解锁逻辑】：触发任务二，同时解除任务一的锁定
         task_sequence_flag = 0; // 重置为0，允许后续再次触发任务一
 
         // 【触发任务二】巡检机器人开发
-        std::string admin_name = (name == "小明") ? "周晓铭" : name;
+        std::string admin_name = (name == "Juwan") ? "Juwan" : name;
         speak("你好，管理员翁佳亮");
         current_state = STATE_T2_WAIT_START;
         toggleAudioRecording(true); // 开启听觉，等待开始口令
@@ -207,6 +207,7 @@ void voiceTextCallback(const std_msgs::String::ConstPtr& msg) {
             {"北京", {"beijing",   "北京馆"}},
             {"广州", {"guangzhou", "广州馆"}},
             {"吉林", {"jilin",     "吉林馆"}},
+            {"尽管", {"jilin",     "吉林馆"}},
             {"上海", {"shanghai",  "上海馆"}}
         };
 
@@ -325,13 +326,20 @@ void navStatusCallback(const std_msgs::String::ConstPtr& msg) {
             std_msgs::String cmd_msg;
             cmd_msg.data = inspect_targets[current_inspect_idx];
             nav_cmd_pub.publish(cmd_msg);
-        } else {
+            } else {
             // 所有场馆遍历完毕，触发最终的充电大招
             ROS_INFO(" 所有场馆智能巡检完毕！启动自动充电...");
+            
+            // 【必须补上】：先下发暂停指令，锁死 nav_goal.cpp
+            std_msgs::String pause_msg;
+            pause_msg.data = "PAUSE_NAV";
+            nav_cmd_pub.publish(pause_msg);
+            ros::Duration(0.5).sleep(); // 强制等待 0.5 秒，确保老司机处理完暂停并清空了旧任务
+
+            // 然后通知充电节点开始干活
             std_msgs::String charge_msg;
             charge_msg.data = "START_CHARGE";
-            charge_cmd_pub.publish(charge_msg); // 通知充电节点开始干活
-            
+            charge_cmd_pub.publish(charge_msg); 
             current_state = STATE_T2_CHARGING;  // 大脑进入挂机等待状态
         }
     }
@@ -345,15 +353,19 @@ void navStatusCallback(const std_msgs::String::ConstPtr& msg) {
 // D. 专门接收充电包反馈的回调函数
 void chargeStatusCallback(const std_msgs::String::ConstPtr& msg) {
     if (current_state != STATE_T2_CHARGING) return;
-
     if (msg->data == "CHARGE_DONE") {
-        ROS_INFO("收到充电完成信号！下发返回初始点指令...");
+        ROS_INFO("收到充电完成信号！");
         
+        // 【必须补上】：先下发恢复指令，解锁 nav_goal.cpp
+        std_msgs::String resume_msg;
+        resume_msg.data = "RESUME_NAV";
+        nav_cmd_pub.publish(resume_msg);
+        ros::Duration(0.2).sleep(); // 等待老司机恢复状态
 
+        ROS_INFO("下发返回初始点指令...");
         std_msgs::String cmd_msg;
         cmd_msg.data = "start"; // 司机（nav_goal.cpp）开回起点
         nav_cmd_pub.publish(cmd_msg);
-
         current_state = STATE_RETURN_HOME;
     }
 }

@@ -73,69 +73,65 @@ bool navToGoal(double x, double y, double z, double w){
     ROS_INFO("等待连接 move_base 服务器...");
     nav_client->waitForServer();
     ROS_INFO("连接成功！");
-    nav_client->cancelAllGoals();
-    ROS_WARN("已清空所有导航任务！");
+    
+    // 【必须删除】：nav_client->cancelAllGoals(); 和 ROS_WARN("已清空所有导航任务！");
+    // 原因：main.cpp 已经通过 PAUSE_NAV 让老司机取消了旧任务，这里再异步取消会导致底层时序竞争。
+
     // 构造导航目标消息
     move_base_msgs::MoveBaseGoal goal;
-
-    // 设置坐标系为 map
     goal.target_pose.header.frame_id = "map";
     goal.target_pose.header.stamp = ros::Time::now();
-
-    // 设置目标坐标（可修改 x, y）
     goal.target_pose.pose.position.x = x;
     goal.target_pose.pose.position.y = y;
-
-    // 设置朝向
     goal.target_pose.pose.orientation.z = z;
     goal.target_pose.pose.orientation.w = w;
-    // 发送目标点
+
     ROS_INFO("发送导航目标...");
     nav_client->sendGoal(goal);
 
     // 循环监听导航状态
     ros::Rate rate(5);
-    while (ros::ok())
-    {
+    int preempt_retry = 0; // 【必须新增】：防抢占重试计数器
+    
+    while (ros::ok()) {
         actionlib::SimpleClientGoalState state = nav_client->getState();
         std::string state_str = state.toString();
-
-        // 实时打印状态
         ROS_INFO("当前导航状态：%s", state_str.c_str());
 
         // 导航成功
-        if (state == actionlib::SimpleClientGoalState::SUCCEEDED)
-        {
+        if (state == actionlib::SimpleClientGoalState::SUCCEEDED) {
             ROS_INFO("导航成功：已到达目标点！");
             return true;
         }
+        // 【必须修改】：如果发生极小概率的 PREEMPTED，自动重试一次
+        else if (state == actionlib::SimpleClientGoalState::PREEMPTED) {
+            if (preempt_retry < 1) {
+                ROS_WARN("导航被意外取消，正在重试 (1/1)...");
+                preempt_retry++;
+                ros::Duration(0.5).sleep();
+                nav_client->sendGoal(goal); // 重新发送
+                continue;
+            }
+            ROS_ERROR("导航任务已被取消且重试失败！");
+            return false;
+        }
         // 导航失败（内部错误/障碍物/无法规划）
-        else if (state == actionlib::SimpleClientGoalState::ABORTED)
-        {
+        else if (state == actionlib::SimpleClientGoalState::ABORTED) {
             ROS_ERROR("导航失败：无法到达目标！");
             return false;
         }
-        // 任务被取消
-        else if (state == actionlib::SimpleClientGoalState::PREEMPTED)
-        {
-            ROS_WARN("导航任务已被取消！");
-            return false;
-        }
         // 任务被拒绝
-        else if (state == actionlib::SimpleClientGoalState::REJECTED)
-        {
+        else if (state == actionlib::SimpleClientGoalState::REJECTED) {
             ROS_ERROR("导航目标被服务器拒绝！");
             return false;
         }
         // 导航超时
-        else if (state == actionlib::SimpleClientGoalState::LOST)
-        {
+        else if (state == actionlib::SimpleClientGoalState::LOST) {
             ROS_ERROR("导航连接丢失！");
             return false;
         }
         rate.sleep();
     }
-    // ROS 退出
     return false;
 }
 
