@@ -40,27 +40,27 @@ public:
 
         // 【闭环正赛】：完美对齐你提取到的 4 参数真实物理世界坐标
         if (goal_place == "shenzhen") {
-            target = {0.997, 1.218, -0.004, 1.000};
+            target = {1.066, 1.217};
             valid_target = true;
         } 
         else if (goal_place == "start" || goal_place == "home") {
-            target = {0.026, -0.008, 0.737, 0.676};
+            target = {0.052, 0.025};
             valid_target = true;
         }
         else if (goal_place == "beijing") {
-            target = {2.444, 0.195, 0.008, 1.000};
+            target = {2.533, 0.207};
             valid_target = true;
         }
         else if (goal_place == "guangzhou") {
-            target = {2.474, 1.162, 0.011, 1.000};
+            target = {2.509, 1.199};
             valid_target = true;
         }
         else if (goal_place == "jilin") {
-            target = {2.480, 2.181, 0.015, 1.000};
+            target = {2.506, 2.202};
             valid_target = true;
         }
         else if (goal_place == "shanghai") {
-            target = {1.051, 2.187, 0.007, 1.000};
+            target = {1.056, 2.205};
             valid_target = true;
         }
 
@@ -76,8 +76,8 @@ public:
 
         goal.target_pose.pose.orientation.x = 0.0;
         goal.target_pose.pose.orientation.y = 0.0;
-        goal.target_pose.pose.orientation.z = target.z; 
-        goal.target_pose.pose.orientation.w = target.w; 
+        goal.target_pose.pose.orientation.z = 0.0; 
+        goal.target_pose.pose.orientation.w = 1.0; 
 
         ROS_INFO("正在奔赴目的地 [%s]...", goal_place.c_str());
         ac_.sendGoal(goal);

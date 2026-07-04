@@ -1,3 +1,4 @@
+#include <std_msgs/String.h>
 #include <ros/ros.h>
 #include "relative_move/SetRelativeMove.h"
 #include <actionlib/client/simple_action_client.h>
@@ -6,9 +7,10 @@
 
 // 创建服务客户端
 ros::ServiceClient relmove_client;
-
-// 本次课程新增二次定位客户端
 ros::ServiceClient track_client; 
+
+// 增加一个全局的发布者，用于向大脑汇报
+ros::Publisher status_pub;
 
 // 定义 Action 客户端类型
 typedef actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction> MoveBaseClient;
@@ -137,28 +139,62 @@ bool navToGoal(double x, double y, double z, double w){
     return false;
 }
 
+void chargeCommandCallback(const std_msgs::String::ConstPtr& msg) {
+    if (msg->data == "START_CHARGE") {
+        ROS_INFO(">> 收到大脑指令，重定位包接管底盘，开始充电流程...");
+
+        if (!navToGoal(0.3, 1.95, -0.7, 0.7)) {
+            ROS_ERROR("无法到达充电桩预备位！");
+            return; 
+        }
+
+        if (!set_ARtrack(1, 0.4)) {
+            ROS_ERROR("AR 对准失败！");
+            return;
+        }
+
+        if (!set_relmove(-0.18, 0, 0)) return;
+
+        ROS_INFO(">> 正在充电中...");
+        ros::Duration(4.0).sleep(); 
+
+        if (!set_relmove(0.18, 0, 0)) return;
+
+        ROS_INFO(">> 成功脱离充电桩，向大脑发送完成信号...");
+        std_msgs::String done_msg;
+        done_msg.data = "CHARGE_DONE";
+        status_pub.publish(done_msg);
+    }
+}
+
+// ==========================================
+// 主函数
+// ==========================================
 int main(int argc, char** argv)
 {
     setlocale(LC_CTYPE, "zh_CN.utf8");
     ros::init(argc, argv, "relocalization_node");
     ros::NodeHandle nh;
+
     relmove_client = nh.serviceClient<relative_move::SetRelativeMove>("/relative_move");
     track_client = nh.serviceClient<ar_pose::Track>("/track");
-    nav_client = new MoveBaseClient("move_base",true);
+    nav_client = new MoveBaseClient("move_base", true);
 
-    if (!navToGoal(0.3, 1.95, -0.7, 0.7)){
-        return 0;
-    }
-    if (!set_ARtrack(0,0.4)){
-        return 0;
-    }
-    if (!set_relmove(-0.18,0,0)){
-        return 0;
-    }
-    ros::Duration(2.0).sleep();
-    if (!set_relmove(0.18,0,0)){
-        return 0;
-    }
-    delete nav_client; // 程序结束释放资源
+    // 【1. 必须新增】订阅大脑的命令。只有听到 "START_CHARGE" 才会去干活
+    ros::Subscriber cmd_sub = nh.subscribe("/charge_cmd", 1, chargeCommandCallback);
+    
+    // 【2. 必须新增】初始化状态发布者，干完活才能向大脑汇报 "CHARGE_DONE"
+    status_pub = nh.advertise<std_msgs::String>("/charge_status", 1);
+
+    ROS_INFO("===========================================");
+    ROS_INFO("重定位充电节点已启动，当前在后台待命...");
+    ROS_INFO("等待大脑下发充电指令...");
+    ROS_INFO("===========================================");
+    
+    // 【3. 必须修改】用 spin() 替代你原来那堆直接执行的代码。
+    // 这会让程序永远不死，一直在这里听从大脑的调遣！
+    ros::spin(); 
+
+    delete nav_client;
     return 0;
 }
