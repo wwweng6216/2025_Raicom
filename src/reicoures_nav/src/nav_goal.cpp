@@ -70,12 +70,12 @@ public:
         bool valid_target = false;
 
         // 【闭环正赛】：完美保留你微调过的真实物理世界坐标
-        if (goal_place == "shenzhen")      { target = {1.066, 1.217, 0.000, 0.995}; valid_target = true; }
+        if (goal_place == "shenzhen")      { target = {1.050, 1.217, 0.000, 0.990}; valid_target = true; }
         else if (goal_place == "start" || goal_place == "home") { target = {0.025, 0.000, 0.000, 0.999}; valid_target = true; }
-        else if (goal_place == "beijing")  { target = {2.533, 0.207, 0.000, 0.995}; valid_target = true; }
-        else if (goal_place == "guangzhou"){ target = {2.509, 1.199, 0.000, 0.995}; valid_target = true; }
-        else if (goal_place == "jilin")    { target = {2.506, 2.202, 0.000, 0.995}; valid_target = true; }
-        else if (goal_place == "shanghai") { target = {1.056, 2.205, 0.000, 0.980}; valid_target = true; }
+        else if (goal_place == "beijing")  { target = {2.520, 0.207, 0.000, 0.985}; valid_target = true; }
+        else if (goal_place == "guangzhou"){ target = {2.500, 1.204, 0.000, 0.975}; valid_target = true; }
+        else if (goal_place == "jilin")    { target = {2.490, 2.202, 0.000, 0.985}; valid_target = true; }
+        else if (goal_place == "shanghai") { target = {1.050, 2.205, 0.000, 0.965}; valid_target = true; }
 
         if (!valid_target) {
             ROS_WARN("未知目的地: %s，拒绝发车！", goal_place.c_str());
